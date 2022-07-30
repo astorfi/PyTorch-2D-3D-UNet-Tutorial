@@ -2,7 +2,9 @@ from typing import Optional
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
+import pathlib
+import os
 
 
 class Trainer:
@@ -12,9 +14,9 @@ class Trainer:
         device: torch.device,
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        training_dataloader: Dataset,
-        validation_dataloader: Optional[Dataset] = None,
-        lr_scheduler: Optional[torch.optim.lr_scheduler] = None,
+        training_dataloader: DataLoader,
+        validation_dataloader: Optional[DataLoader] = None,
+        lr_scheduler: torch.optim.lr_scheduler = None,
         epochs: int = 100,
         epoch: int = 0,
         notebook: bool = False,
@@ -50,6 +52,9 @@ class Trainer:
             """Training block"""
             self._train()
 
+            """Save model per epoch"""
+            self._save_epoch()
+
             """Validation block"""
             if self.validation_dataloader is not None:
                 self._validate()
@@ -66,6 +71,15 @@ class Trainer:
                 else:
                     self.lr_scheduler.batch()  # learning rate scheduler step
         return self.training_loss, self.validation_loss, self.learning_rate
+
+    def _save_epoch(self):
+
+        # save the model
+        model_name = "carvana_model_epoch_" + str(self.epoch) + ".pt"
+        exp_dir = pathlib.Path(os.path.expanduser("~") + '/pytorch_exp')
+        if not exp_dir.exists():
+            exp_dir.mkdir()
+        torch.save(self.model.state_dict(), exp_dir / model_name)
 
     def _train(self):
 
